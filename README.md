@@ -1,5 +1,7 @@
 # undici-proxy
 
+[![Node.js CI](https://github.com/SyaOS/undici-proxy/actions/workflows/ci.yaml/badge.svg)](https://github.com/SyaOS/undici-proxy/actions/workflows/ci.yaml)
+
 Yet another express proxy middleware based on [undici](https://undici.nodejs.org/).
 
 ## Install
