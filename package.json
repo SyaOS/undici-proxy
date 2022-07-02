@@ -38,6 +38,7 @@
   },
   "devDependencies": {
     "@types/lodash": "^4.14.182",
+    "autocannon": "^7.9.0",
     "body-parser": "^1.20.0",
     "eslint": "^8.18.0",
     "eslint-config-prettier": "^8.5.0",
@@ -47,6 +48,8 @@
     "eslint-plugin-n": "^15.2.3",
     "eslint-plugin-promise": "^6.0.0",
     "express": "*",
+    "express-http-proxy": "^1.6.3",
+    "http-proxy-middleware": "^2.0.6",
     "mocha": "^10.0.0",
     "prettier": "^2.7.1",
     "should": "^13.2.3"
