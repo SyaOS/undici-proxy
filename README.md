@@ -25,19 +25,19 @@ app.listen(3000)
 
 ## Config
 
-The `proxy()` function also accepts an [undici Client](https://undici.nodejs.org/#/docs/api/Client), so you can use it like:
+The `proxy()` function also accepts an [undici Pool](https://undici.nodejs.org/#/docs/api/Pool), so you can use it like:
 
 ```JavaScript
 const express = require('express');
 const proxy = require('koa-undici-proxy');
-const { Client } = require('undici');
+const { Pool } = require('undici');
 
 const app = express()
-const client = new Client('https://httpbin.org', {
+const pool = new Pool('https://httpbin.org', {
   // I want to proxy big blobs so disable the timeout of receiving body.
   bodyTimeout: 0,
 })
-app.use(proxy(client))
+app.use(proxy(pool))
 
 app.listen(3000)
 ```
