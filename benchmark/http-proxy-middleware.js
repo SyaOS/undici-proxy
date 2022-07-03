@@ -1,53 +1,26 @@
-// @ts-nocheck
-const autocannon = require("autocannon");
 const express = require("express");
-const { createServer } = require("http");
 const { createProxyMiddleware } = require("http-proxy-middleware");
-const { promisify } = require("util");
+const { createServer } = require("http");
+
+const bench = require("./lib/bench");
 const echo = require("./lib/echo");
+const run = require("./lib/run");
 
-/**
- * @typedef {import('net').AddressInfo} AddressInfo
- * @typedef {import('net').Server} Server
- */
-
-module.exports = async function () {
-  /** @type {Server} */
-  let echoServer;
-  /** @type {Server} */
-  let proxyServer;
-  try {
-    echoServer = echo();
-    await promisify((callback) => echoServer.listen(callback))();
-    const { port: echoPort } = /** @type {import('net').AddressInfo} */ (
-      echoServer.address()
-    );
-
+async function main() {
+  await run(echo(), async ({ port }) => {
+    console.log("# http-proxy-middleware");
     const app = express().use(
-      createProxyMiddleware({ target: `http://localhost:${echoPort}` })
+      createProxyMiddleware({ target: `http://localhost:${port}/` })
     );
-    proxyServer = createServer(app);
-    await promisify((callback) => proxyServer.listen(callback))();
-    const { port: proxyPort } = /** @type {import('net').AddressInfo} */ (
-      proxyServer.address()
-    );
+    await run(createServer(app), bench);
+  });
+}
 
-    const result = await autocannon({
-      url: `http://localhost:${proxyPort}`,
-      body: "Hello World!",
-    });
+module.exports = main;
 
-    process.stdout.write(
-      autocannon.printResult(result, {
-        outputStream: process.stdout,
-      })
-    );
-  } finally {
-    if (echoServer !== undefined && echoServer.listening) {
-      await promisify((callback) => echoServer.close(callback))();
-    }
-    if (proxyServer !== undefined && proxyServer.listening) {
-      await promisify((callback) => proxyServer.close(callback))();
-    }
-  }
-};
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}
