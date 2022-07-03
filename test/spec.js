@@ -1,94 +1,190 @@
-const { after, before, describe, it } = require("mocha");
+const { text } = require("body-parser");
+const express = require("express");
 const should = require("should");
-const { request, MockAgent, MockPool } = require("undici");
-const { promisify } = require("util");
-
+const { Pool } = require("undici");
 const proxy = require("..");
+const { useApp, useClient } = require("./helpers");
 
-/**
- * @typedef {import('net').AddressInfo} AddressInfo
- * @typedef {import('net').Server} Server
- * @typedef {import('stream').Readable} Readable
- */
-
-describe("undici-proxy", function () {
-  /** @type {MockPool} */
-  let pool;
-  /** @type {Server} */
-  let server;
-  /** @type {number} */
-  let port;
-
-  before(async function () {
-    pool = new MockPool(`http://undici-proxy/`, { agent: new MockAgent() });
-    server = await promisify((callback) => {
-      const server = proxy(pool).listen(() => callback(null, server));
-    })();
-    port = /** @type {AddressInfo} */ (server.address()).port;
-  });
-
-  after(async function () {
-    if (pool && !pool.closed) pool.close();
-    if (server && server.listening) {
-      server.close();
-    }
-  });
-
+describe("basic functionality", function () {
   describe("proxy request", function () {
     it("should pass request method", async function () {
-      pool.intercept({ method: "PUT", path: "/" }).reply(202, "");
-      const { statusCode } = await request(`http://localhost:${port}/`, {
-        method: "PUT",
+      const app = express().use(function (req, res) {
+        should(req.method).equal("PATCH");
+        res.end();
       });
-      should(statusCode).eql(202);
+      await useApp(app, async function (url) {
+        const app = express().use(proxy(new Pool(url, { pipelining: 0 })));
+        await useApp(app, async function (url) {
+          await useClient(url, async function (client) {
+            await client.request({
+              method: "PATCH",
+              path: "/",
+              throwOnError: true,
+            });
+          });
+        });
+      });
     });
 
     it("should pass request url", async function () {
-      pool.intercept({ path: "/foobar" }).reply(202, "");
-      const { statusCode } = await request(`http://localhost:${port}/foobar`);
-      should(statusCode).eql(202);
+      const app = express().use(function (req, res) {
+        should(req.url).equal("/foobar");
+        res.end();
+      });
+      await useApp(app, async function (url) {
+        const app = express().use(proxy(new Pool(url, { pipelining: 0 })));
+        await useApp(app, async function (url) {
+          await useClient(url, async function (client) {
+            await client.request({
+              method: "GET",
+              path: "/foobar",
+              throwOnError: true,
+            });
+          });
+        });
+      });
     });
 
     it("should pass request header", async function () {
-      pool.intercept({ path: "/", headers: { "x-foo": "bar" } }).reply(202, "");
-      const { statusCode } = await request(`http://localhost:${port}/`, {
-        headers: {
-          "x-foo": "bar",
-        },
+      const app = express().use(function (req, res) {
+        should(req.get("x-foo")).equal("bar");
+        res.end();
       });
-      should(statusCode).eql(202);
+      await useApp(app, async function (url) {
+        const app = express().use(proxy(new Pool(url, { pipelining: 0 })));
+        await useApp(app, async function (url) {
+          await useClient(url, async function (client) {
+            await client.request({
+              method: "GET",
+              path: "/",
+              headers: {
+                "x-foo": "bar",
+              },
+              throwOnError: true,
+            });
+          });
+        });
+      });
     });
 
-    it("should pass request body");
+    it("should pass request body", async function () {
+      const app = express().use(text(), function (req, res) {
+        should(req.body).equal("foobar");
+        res.end();
+      });
+      await useApp(app, async function (url) {
+        const app = express().use(proxy(new Pool(url, { pipelining: 0 })));
+        await useApp(app, async function (url) {
+          await useClient(url, async function (client) {
+            await client.request({
+              method: "GET",
+              path: "/",
+              headers: {
+                "content-type": "text/plain",
+              },
+              body: "foobar",
+              throwOnError: true,
+            });
+          });
+        });
+      });
+    });
   });
 
   describe("proxy response", function () {
     it("should pass response status", async function () {
-      pool.intercept({ path: "/" }).reply(204, "");
-      const { statusCode } = await request(`http://localhost:${port}/`);
-      should(statusCode).eql(204);
+      const app = express().use(function (req, res) {
+        res.status(204).end();
+      });
+      await useApp(app, async function (url) {
+        const app = express().use(proxy(new Pool(url, { pipelining: 0 })));
+        await useApp(app, async function (url) {
+          await useClient(url, async function (client) {
+            const { statusCode } = await client.request({
+              method: "GET",
+              path: "/",
+              throwOnError: true,
+            });
+            should(statusCode).equal(204);
+          });
+        });
+      });
     });
 
     it("should pass response header", async function () {
-      pool.intercept({ path: "/" }).reply(204, "", {
-        headers: { "x-foo": "bar" },
+      const app = express().use(function (req, res) {
+        res.set("x-foo", "bar").end();
       });
-      const { headers } = await request(`http://localhost:${port}/`);
-      should(headers).match({ "x-foo": "bar" });
+      await useApp(app, async function (url) {
+        const app = express().use(proxy(new Pool(url, { pipelining: 0 })));
+        await useApp(app, async function (url) {
+          await useClient(url, async function (client) {
+            const { headers } = await client.request({
+              method: "GET",
+              path: "/",
+              throwOnError: true,
+            });
+            should(headers).match({ "x-foo": "bar" });
+          });
+        });
+      });
     });
 
     it("should pass response body", async function () {
-      pool.intercept({ path: "/" }).reply(200, "foobar");
-      const { body } = await request(`http://localhost:${port}/`);
-      await should(body.text()).eventually.eql("foobar");
+      const app = express().use(function (req, res) {
+        res.end("foobar");
+      });
+      await useApp(app, async function (url) {
+        const app = express().use(proxy(new Pool(url, { pipelining: 0 })));
+        await useApp(app, async function (url) {
+          await useClient(url, async function (client) {
+            const { body } = await client.request({
+              method: "GET",
+              path: "/",
+              throwOnError: true,
+            });
+            await should(body.text()).eventually.equal("foobar");
+          });
+        });
+      });
     });
   });
 
   describe("proxy error", function () {
-    it("should return 502 when response closed", async function () {
-      pool.intercept({ path: "/" }).replyWithError(Error("failed"));
-      const { statusCode } = await request(`http://localhost:${port}/`);
-      should(statusCode).match(502);
+    it("should return 502 when request destroyed", async function () {
+      const app = express().use(function (req, res) {
+        req.destroy();
+      });
+      await useApp(app, async function (url) {
+        const app = express().use(proxy(new Pool(url, { pipelining: 0 })));
+        await useApp(app, async function (url) {
+          await useClient(url, async function (client) {
+            const { statusCode } = await client.request({
+              method: "GET",
+              path: "/",
+            });
+            should(statusCode).equal(502);
+          });
+        });
+      });
+    });
+
+    it("should return 502 when response destroyed", async function () {
+      const app = express().use(function (req, res) {
+        res.destroy();
+      });
+      await useApp(app, async function (url) {
+        const app = express().use(proxy(new Pool(url, { pipelining: 0 })));
+        await useApp(app, async function (url) {
+          await useClient(url, async function (client) {
+            const { statusCode } = await client.request({
+              method: "GET",
+              path: "/",
+            });
+            should(statusCode).equal(502);
+          });
+        });
+      });
     });
   });
 });
