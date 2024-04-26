@@ -10,7 +10,10 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [lts/fermium, lts/gallium]
+        node-version:
+        - lts/hydrogen
+        - lts/iron
+        - current
 
     steps:
       - uses: actions/checkout@v3
