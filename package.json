@@ -43,7 +43,7 @@
     "@types/lodash": "^4.14.182",
     "autocannon": "^7.9.0",
     "body-parser": "^1.20.0",
-    "eslint": "^8.18.0",
+    "eslint": "^9.16.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-config-standard": "^17.0.0",
     "eslint-plugin-mocha": "^10.0.5",
