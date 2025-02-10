@@ -19,7 +19,6 @@ describe("basic functionality", function () {
             await client.request({
               method: "PATCH",
               path: "/",
-              throwOnError: true,
             });
           });
         });
@@ -38,7 +37,6 @@ describe("basic functionality", function () {
             await client.request({
               method: "GET",
               path: "/foobar",
-              throwOnError: true,
             });
           });
         });
@@ -60,7 +58,6 @@ describe("basic functionality", function () {
               headers: {
                 "x-foo": "bar",
               },
-              throwOnError: true,
             });
           });
         });
@@ -83,7 +80,6 @@ describe("basic functionality", function () {
                 "content-type": "text/plain",
               },
               body: "foobar",
-              throwOnError: true,
             });
           });
         });
@@ -103,7 +99,6 @@ describe("basic functionality", function () {
             const { statusCode } = await client.request({
               method: "GET",
               path: "/",
-              throwOnError: true,
             });
             should(statusCode).equal(204);
           });
@@ -122,7 +117,6 @@ describe("basic functionality", function () {
             const { headers } = await client.request({
               method: "GET",
               path: "/",
-              throwOnError: true,
             });
             should(headers).match({ "x-foo": "bar" });
           });
@@ -141,7 +135,6 @@ describe("basic functionality", function () {
             const { body } = await client.request({
               method: "GET",
               path: "/",
-              throwOnError: true,
             });
             await should(body.text()).eventually.equal("foobar");
           });
