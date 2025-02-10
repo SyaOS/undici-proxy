@@ -1,6 +1,6 @@
 {
   "name": "undici-proxy",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Yet another express proxy middleware based on undici.",
   "main": "lib/index.js",
   "files": [
