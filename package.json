@@ -27,7 +27,7 @@
   },
   "homepage": "https://github.com/SyaOS/undici-proxy#readme",
   "engines": {
-    "node": ">=18.12.0"
+    "node": ">=20.9.0"
   },
   "dependencies": {
     "lodash": "^4.17.21",
