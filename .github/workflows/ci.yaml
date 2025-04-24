@@ -13,7 +13,11 @@ jobs:
         node-version:
         - lts/hydrogen
         - lts/iron
+        - lts/jod
         - current
+        express-version:
+        - 4
+        - 5
 
     steps:
       - uses: actions/checkout@v3
@@ -21,5 +25,6 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - run: npm install
+      - run: npm install express@${{ matrix.express-version }} @types/express@${{ matrix.express-version }}
       - run: npm run lint
       - run: npm test
